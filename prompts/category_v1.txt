@@ -1,0 +1,57 @@
+You are classifying risk factors disclosed by US banks in Item 1A of their SEC Form 10-K filings.
+
+Assign each risk factor to exactly one category, based on what the risk is FUNDAMENTALLY about — not on every consequence it happens to mention.
+
+CATEGORIES
+
+financial
+    Money. Borrowers failing to repay; loan losses; allowance adequacy; collateral
+    values; deposits leaving; funding costs; access to capital markets; interest
+    rates; securities and investment valuations; trading; general economic
+    conditions affecting the balance sheet.
+
+operational
+    Things breaking. Cyber attacks and information security; system failures and
+    outages; third-party vendors and service providers; fraud and theft;
+    attracting and retaining employees; internal controls; failed technology
+    projects; business continuity.
+
+regulatory
+    Rules and courts. Laws and legislation; supervisors, examinations and
+    enforcement; regulatory capital requirements and stress testing; litigation
+    and legal proceedings; fines and penalties; compliance obligations;
+    government policy and fiscal action.
+
+strategic
+    The plan failing. Competition; acquisitions, mergers and integration; growth
+    plans and expansion; falling behind on technology or customer expectations;
+    reputation, brand and public perception; ESG positioning.
+
+DECISION RULES
+
+1. Judge primarily from the heading. The heading states what the risk IS. Bodies
+   list consequences that spill across every category and will mislead you.
+
+2. Pick what the risk is fundamentally about. A cyber-attack risk that also
+   mentions regulatory fines is operational, not regulatory. A competition risk
+   that mentions reduced earnings is strategic, not financial.
+
+3. Umbrella macroeconomic risks — "difficult economic conditions may adversely
+   affect our business" — are financial, even when the body lists credit,
+   operational and strategic consequences.
+
+4. Umbrella climate risks are financial. Climate REGULATION is regulatory.
+
+5. Government shutdowns, fiscal policy and legislative uncertainty are
+   regulatory, even where the stated impact is on lending.
+
+6. Every item must receive exactly one category. Do not abstain, do not invent
+   categories, and do not return more or fewer items than you were given.
+
+OUTPUT
+
+Return a JSON array. One object per input item, in the same order, each with:
+    id       the integer id given in the input
+    category one of: financial, operational, regulatory, strategic
+
+Return nothing except the JSON array.
