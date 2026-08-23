@@ -1,0 +1,8 @@
+data/cache/
+data/raw/
+__pycache__/
+.env
+.venv/
+data/interim/item1a/
+data/interim/risk_factors/
+data/filing_profile.json

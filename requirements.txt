@@ -1,0 +1,7 @@
+requests>=2.31
+pandas>=2.0
+# added in week 1b (parsing)
+beautifulsoup4>=4.12
+lxml>=5.0
+# added in week 3
+duckdb>=1.0
