@@ -17,7 +17,9 @@ conservative one is reported.
 | Splitting | correctly split risk factors | **89.3%** | n=300, hand-labelled |
 | Classification | keyword baseline accuracy | **82.7%** | n=300 |
 | Classification | keyword baseline macro F1 | **0.814** | n=300 |
-| Classification | LLM | *pending* | |
+| Classification | LLM accuracy | **91.3%** | n=300 |
+| Classification | LLM macro F1 | **0.910** | n=300 |
+| Classification | **lift over baseline** | **+9.6 macro F1 points** | n=300 |
 
 Corpus after exclusions: **50 companies, 250 filings, 10,585 risk factors.**
 
@@ -160,7 +162,7 @@ data and would beat any comparison for the wrong reason.
 |---|---|
 | Always predict the commonest class (`financial`, 39.3%) | 0.393 |
 | **Keyword baseline** | **0.827** |
-| LLM | *pending* |
+| **LLM (Gemini 2.5 Flash, prompt v1)** | **0.913** |
 
 Accuracy alone is misleading on imbalanced data, which is why macro F1 — the
 unweighted mean across classes, so a small class counts as much as a large one —
@@ -216,7 +218,81 @@ sped up.
 
 ---
 
-## 5. The gold set
+---
+
+## 5. Category classification — LLM
+
+**Accuracy 0.913 (95% CI 0.876–0.940), macro F1 0.910, n = 300.**
+
+Gemini 2.5 Flash, prompt version `v1`, temperature 0, 20 risk factors per
+request with an enforced JSON response schema. **Parse failure rate 0.00%** —
+no malformed or mis-sized responses across 15 batches.
+
+### Against the baseline
+
+| | LLM | keywords | lift |
+|---|---|---|---|
+| accuracy | 0.913 | 0.827 | **+8.7 pts** |
+| macro F1 | 0.910 | 0.814 | **+9.6 pts** |
+
+The LLM wins on every class, so there is no field where the simpler method
+should be preferred. Had the baseline won anywhere, the baseline would be used
+for that field and reported as such.
+
+### Per class
+
+| class | precision | recall | F1 | support | F1 lift |
+|---|---|---|---|---|---|
+| financial | 0.931 | 0.915 | 0.923 | 118 | +6.0 |
+| operational | 0.915 | 0.885 | 0.900 | 61 | **+10.0** |
+| regulatory | 0.880 | 0.971 | 0.923 | 68 | +8.2 |
+| strategic | 0.920 | 0.868 | 0.893 | 53 | **+14.1** |
+
+### Confusion matrix (rows = truth, columns = prediction)
+
+| | financial | operational | regulatory | strategic |
+|---|---|---|---|---|
+| **financial** | 108 | 3 | 5 | 2 |
+| **operational** | 5 | 54 | 1 | 1 |
+| **regulatory** | 1 | 0 | 66 | 1 |
+| **strategic** | 2 | 2 | 3 | 46 |
+
+### The prediction, recorded before the run
+
+Section 4 stated, before any LLM output existed:
+
+> *"the LLM's largest gain will be operational recall."*
+
+| | baseline | LLM | change |
+|---|---|---|---|
+| operational recall | 0.689 | **0.885** | **+19.6 pts** |
+
+Confirmed, and the diagnosed mechanism held. The baseline's error was
+one-directional — 11 operational risks assigned to `financial` because the
+keyword list lacked the vocabulary and the tie-break rule sends unmatched items
+to `financial`. The LLM reduces that to 5. This was a coverage problem, not a
+taxonomy problem, and the fix behaved as predicted.
+
+`strategic` gained most in F1 (+14.1). It was the baseline's weakest class at
+0.752, with bidirectional confusion against `financial`; the LLM handles that
+boundary substantially better.
+
+### Where the LLM is weaker
+
+`regulatory` recall is 0.971 against precision 0.880 — the LLM now
+*over*-predicts regulatory, absorbing 5 financial and 3 strategic items. This is
+the mirror image of the baseline's bias toward `financial`. Both systems have a
+preferred class; neither is neutral.
+
+### Cost and reproducibility
+
+Batching 20 items per request turns 10,585 individual calls into roughly 530,
+which fits inside a free-tier daily quota. Temperature is 0 so the same input
+returns the same label, and every output row records the prompt version, model
+name and run timestamp — without which rows produced by different prompt
+versions would be silently incomparable.
+
+## 6. The gold set
 
 **300 risk factors, hand-labelled by the author.**
 
@@ -265,7 +341,7 @@ matters more than case-by-case optimality:
 
 ---
 
-## 6. Known limitations
+## 7. Known limitations
 
 **The gold set is not truth.** It is one annotator's consistent judgement.
 Self-agreement has not yet been measured — see below — so no ceiling on
@@ -291,13 +367,16 @@ summaries the summary-detection rule does not catch, inflating their counts to
 76–87 against a panel median of 40. Documented rather than fixed, because each
 additional filer-specific rule has historically regressed other filers.
 
-**Errors compound.** A 100% parse rate feeding an 89.3% splitter feeding an
-82.7% classifier is roughly **74% end to end**. Stage-level figures are the
-honest way to expose that; a single headline number would hide it.
+**Errors compound.** A 100% parse rate feeding an 89.3% splitter feeding a
+91.3% classifier is roughly **82% end to end**. Stage-level figures are the
+honest way to expose that; a single headline number would hide it. Note that
+the classifier was scored on gold-set items that include mis-split records, so
+its 91.3% already absorbs some splitting error rather than sitting cleanly on
+top of it.
 
 ---
 
-## 7. Corpus scope
+## 8. Corpus scope
 
 Six companies excluded, each under a stated rule (see DECISIONS.md D5, D6, D11):
 
@@ -322,10 +401,10 @@ peers, not about the regional banking sector.
 
 ---
 
-## 8. What is not yet measured
+## 9. What is not yet measured
 
-- LLM extraction accuracy — not yet run
 - Intra-annotator agreement — relabel pass outstanding
+- LLM classification of the full corpus — gold set only so far (300 of 10,585)
 - Year-over-year matching: false-match and missed-match rates on hand-checked
   pairs
 - Fault injection: deliberately breaking the pipeline and counting how many
