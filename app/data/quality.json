@@ -1,0 +1,30 @@
+{
+  "filings": 250,
+  "companies": 50,
+  "risk_factors": 11209,
+  "parse_rate": 1.0,
+  "split_accuracy": 0.893,
+  "split_n": 300,
+  "baseline_accuracy": 0.827,
+  "baseline_macro_f1": 0.814,
+  "llm_accuracy": 0.937,
+  "llm_macro_f1": 0.93,
+  "classifier_n": 300,
+  "match_false_rate": 0.083,
+  "match_missed_rate": 0.438,
+  "match_n": 48,
+  "finding_strict": 8,
+  "finding_all": 13,
+  "panel": 50,
+  "finding_strict_ci": [
+    0.083,
+    0.285
+  ],
+  "finding_all_ci": [
+    0.159,
+    0.396
+  ],
+  "end_to_end": 0.84,
+  "llm_coverage": 650,
+  "baseline_coverage": 9935
+}
