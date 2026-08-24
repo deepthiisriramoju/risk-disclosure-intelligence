@@ -9,8 +9,12 @@ one against the prior year to identify what is newly disclosed.
 
 Every stage has a measured accuracy figure. That is the point of the project.
 
-> **[ dashboard GIF goes here ]**
-> **[ live app: streamlit link ]**
+### **[▶ Open the live app](https://risk-disclosure-intelligence-mqfjcxjvd2xbnqzspfjbyt.streamlit.app/)**
+
+*Explore the finding, drill into any of the 50 banks year by year, search all
+10,585 risk factors, and see the pipeline's own error rates on the Quality tab.*
+
+> **[ dashboard GIF goes here — record after the LLM run completes ]**
 
 ---
 
@@ -194,6 +198,11 @@ src/
   match_yoy.py           year-over-year matching, calibration, audit
   find_signal.py         quantifies a disclosure signal across the panel
   verify_new.py          verifies specific NEW risks against the prior year
+  build_app_data.py      slim extract the deployed app reads
+app/
+  streamlit_app.py       the live dashboard
+  data/                  headings and labels only, no bodies -- committed so
+                         Streamlit Cloud can deploy from the repo
 prompts/
   category_v1.txt        versioned; every output row records which version ran
 data/
@@ -229,6 +238,9 @@ API. Companies file amendments and EDGAR reindexes, so a re-fetch months later
 may return different documents. That is why raw is timestamped and immutable.
 
 ---
+
+**[▶ Open the live app](https://risk-disclosure-intelligence-mqfjcxjvd2xbnqzspfjbyt.streamlit.app/)** · **[EVALUATION.md](EVALUATION.md)** ·
+**[DECISIONS.md](DECISIONS.md)**
 
 *Data: SEC EDGAR, public filings, accessed under the SEC's fair-access rules
 (descriptive User-Agent, rate limit observed).*
