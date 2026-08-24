@@ -118,6 +118,14 @@ measuring every stage instead of only the model.
 
 ---
 
+## For a non-technical reader
+
+**[BRIEF.md](BRIEF.md)** — a one-page brief written for a risk, compliance or
+competitive-intelligence audience. What was found, what it means in practice,
+and what the data cannot tell you. No methodology.
+
+---
+
 ## How the hard decisions were made
 
 Full reasoning: **[DECISIONS.md](DECISIONS.md)** — 15 entries, each with what was
