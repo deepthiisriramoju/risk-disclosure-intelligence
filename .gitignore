@@ -6,3 +6,5 @@ __pycache__/
 data/interim/item1a/
 data/interim/risk_factors/
 data/filing_profile.json
+
+data/warehouse/

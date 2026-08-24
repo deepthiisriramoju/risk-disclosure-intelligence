@@ -180,7 +180,7 @@ bullet-delimited risk summaries.
 
 ## Stack
 
-Python · DuckDB · Gemini API · Power BI · Streamlit
+Python · DuckDB · SQL · Gemini API · Power BI · Streamlit
 
 No scikit-learn. TF-IDF cosine, the evaluation harness and the Wilson intervals
 are implemented directly, so every number can be traced to the line that produced
@@ -206,11 +206,14 @@ src/
   match_yoy.py           year-over-year matching, calibration, audit
   find_signal.py         quantifies a disclosure signal across the panel
   verify_new.py          verifies specific NEW risks against the prior year
+  build_warehouse.py     DuckDB warehouse: raw -> clean -> mart + quarantine
   build_app_data.py      slim extract the deployed app reads
 app/
   streamlit_app.py       the live dashboard
   data/                  headings and labels only, no bodies -- committed so
                          Streamlit Cloud can deploy from the repo
+sql/
+  analysis.sql           the questions the project set out to answer
 prompts/
   category_v1.txt        versioned; every output row records which version ran
 data/
@@ -239,7 +242,14 @@ python extract_llm.py --gold && python evaluate.py --pred llm_gold.csv --name ll
 python match_yoy.py --calibrate   # read the pairs before setting thresholds
 python match_yoy.py --run
 python find_signal.py --preset deposits --show
+python build_warehouse.py         # raw -> clean -> mart, with quarantine
 ```
+
+The warehouse is DuckDB. Rows failing a validation rule are moved to a
+`quarantine` table with a reason rather than dropped — a discarded row is
+invisible, a quarantined row is a number you can report. Four integrity checks
+run against the warehouse itself rather than against the Python that built it,
+because a count computed by the loader cannot reveal a bug in the loader.
 
 The pipeline is reproducible **from the stored raw layer**, not from the live
 API. Companies file amendments and EDGAR reindexes, so a re-fetch months later
