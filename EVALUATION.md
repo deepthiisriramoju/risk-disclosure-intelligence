@@ -17,9 +17,12 @@ conservative one is reported.
 | Splitting | correctly split risk factors | **89.3%** | n=300, hand-labelled |
 | Classification | keyword baseline accuracy | **82.7%** | n=300 |
 | Classification | keyword baseline macro F1 | **0.814** | n=300 |
-| Classification | LLM accuracy | **91.3%** | n=300 |
-| Classification | LLM macro F1 | **0.910** | n=300 |
-| Classification | **lift over baseline** | **+9.6 macro F1 points** | n=300 |
+| Classification | LLM accuracy | **93.7%** | n=300 |
+| Classification | LLM macro F1 | **0.930** | n=300 |
+| Classification | **lift over baseline** | **+11.6 macro F1 points** | n=300 |
+| YoY matching | false match rate | **8.3%** | n=48 |
+| YoY matching | missed match rate | **43.8%** | n=48 |
+| **Finding** | banks newly disclosing a deposit risk, FY2023 | **8–13 of 50** | verified by hand |
 
 Corpus after exclusions: **50 companies, 250 filings, 10,585 risk factors.**
 
@@ -162,7 +165,7 @@ data and would beat any comparison for the wrong reason.
 |---|---|
 | Always predict the commonest class (`financial`, 39.3%) | 0.393 |
 | **Keyword baseline** | **0.827** |
-| **LLM (Gemini 2.5 Flash, prompt v1)** | **0.913** |
+| **LLM (Gemini 2.5 Flash, prompt v1)** | **0.937** |
 
 Accuracy alone is misleading on imbalanced data, which is why macro F1 — the
 unweighted mean across classes, so a small class counts as much as a large one —
@@ -222,18 +225,26 @@ sped up.
 
 ## 5. Category classification — LLM
 
-**Accuracy 0.913 (95% CI 0.876–0.940), macro F1 0.910, n = 300.**
+**Accuracy 0.937 (95% CI 0.903–0.959), macro F1 0.930, n = 300.**
 
-Gemini 2.5 Flash, prompt version `v1`, temperature 0, 20 risk factors per
+Gemini 2.5 Flash, prompt version `v1`, temperature 0, 50 risk factors per
 request with an enforced JSON response schema. **Parse failure rate 0.00%** —
-no malformed or mis-sized responses across 15 batches.
+no malformed or mis-sized responses.
+
+**Batch size was tuned against the free-tier daily quota, not against accuracy.**
+At 20 per request the corpus needs 530 calls; at 50 it needs 212. Scored on the
+same 300 gold items, batch 20 gave 0.913 and batch 50 gave 0.937 — a 2.4-point
+difference that sits inside both confidence intervals (0.876–0.940 and
+0.903–0.959). **No claim is made that larger batches are better.** What the
+comparison establishes is that they are not worse, which is what the quota
+constraint required.
 
 ### Against the baseline
 
 | | LLM | keywords | lift |
 |---|---|---|---|
-| accuracy | 0.913 | 0.827 | **+8.7 pts** |
-| macro F1 | 0.910 | 0.814 | **+9.6 pts** |
+| accuracy | 0.937 | 0.827 | **+11.0 pts** |
+| macro F1 | 0.930 | 0.814 | **+11.6 pts** |
 
 The LLM wins on every class, so there is no field where the simpler method
 should be preferred. Had the baseline won anywhere, the baseline would be used
@@ -243,19 +254,19 @@ for that field and reported as such.
 
 | class | precision | recall | F1 | support | F1 lift |
 |---|---|---|---|---|---|
-| financial | 0.931 | 0.915 | 0.923 | 118 | +6.0 |
-| operational | 0.915 | 0.885 | 0.900 | 61 | **+10.0** |
-| regulatory | 0.880 | 0.971 | 0.923 | 68 | +8.2 |
-| strategic | 0.920 | 0.868 | 0.893 | 53 | **+14.1** |
+| financial | 0.957 | 0.949 | 0.953 | 118 | +9.0 |
+| operational | 0.919 | 0.934 | 0.927 | 61 | **+12.7** |
+| regulatory | 0.931 | 0.985 | 0.957 | 68 | +11.7 |
+| strategic | 0.918 | 0.849 | 0.882 | 53 | **+13.0** |
 
 ### Confusion matrix (rows = truth, columns = prediction)
 
 | | financial | operational | regulatory | strategic |
 |---|---|---|---|---|
-| **financial** | 108 | 3 | 5 | 2 |
-| **operational** | 5 | 54 | 1 | 1 |
-| **regulatory** | 1 | 0 | 66 | 1 |
-| **strategic** | 2 | 2 | 3 | 46 |
+| **financial** | 112 | 2 | 2 | 2 |
+| **operational** | 3 | 57 | 0 | 1 |
+| **regulatory** | 0 | 0 | 67 | 1 |
+| **strategic** | 2 | 3 | 3 | 45 |
 
 ### The prediction, recorded before the run
 
@@ -265,22 +276,23 @@ Section 4 stated, before any LLM output existed:
 
 | | baseline | LLM | change |
 |---|---|---|---|
-| operational recall | 0.689 | **0.885** | **+19.6 pts** |
+| operational recall | 0.689 | **0.934** | **+24.5 pts** |
 
 Confirmed, and the diagnosed mechanism held. The baseline's error was
 one-directional — 11 operational risks assigned to `financial` because the
 keyword list lacked the vocabulary and the tie-break rule sends unmatched items
-to `financial`. The LLM reduces that to 5. This was a coverage problem, not a
+to `financial`. The LLM reduces that to 3. This was a coverage problem, not a
 taxonomy problem, and the fix behaved as predicted.
 
-`strategic` gained most in F1 (+14.1). It was the baseline's weakest class at
-0.752, with bidirectional confusion against `financial`; the LLM handles that
-boundary substantially better.
+`strategic` gained most in F1 (+13.0). It was the baseline's weakest class at
+0.752 and remains the weakest for the LLM at 0.882, with recall 0.849 — the
+lowest of the four. Three independent measurements now agree that the strategic
+boundary is the least well-defined in the taxonomy.
 
 ### Where the LLM is weaker
 
-`regulatory` recall is 0.971 against precision 0.880 — the LLM now
-*over*-predicts regulatory, absorbing 5 financial and 3 strategic items. This is
+`regulatory` recall is 0.985 against precision 0.931 — the LLM slightly
+*over*-predicts regulatory, absorbing 2 financial and 3 strategic items. This is
 the mirror image of the baseline's bias toward `financial`. Both systems have a
 preferred class; neither is neutral.
 
@@ -292,7 +304,155 @@ returns the same label, and every output row records the prompt version, model
 name and run timestamp — without which rows produced by different prompt
 versions would be silently incomparable.
 
-## 6. The gold set
+---
+
+## 6. Year-over-year matching
+
+Each risk factor is matched to its counterpart in the prior year and labelled
+NEW, CARRIED FORWARD, MATERIALLY REVISED, DROPPED or AMBIGUOUS. Thresholds and
+guards are in DECISIONS.md D13.
+
+### Corpus result
+
+| Label | Count | Share |
+|---|---|---|
+| CARRIED_FORWARD | 6,789 | 74.6% |
+| MATERIALLY_REVISED | 1,044 | 11.5% |
+| NEW | 630 | 6.9% |
+| DROPPED | 624 | 6.9% |
+| AMBIGUOUS | 19 | 0.2% |
+
+1.5% of rows carry a review flag (similarity 0.20–0.40, or ambiguous). Banks
+copy forward with light edits and change a handful of risks a year, which is the
+expected shape.
+
+### Accuracy — measured in both error directions
+
+96 pairs hand-checked, deliberately half accepted and half rejected.
+
+| Direction | Rate | 95% CI |
+|---|---|---|
+| False match | 8.3% (4/48) | 3.3–19.6% |
+| — matcher only, excluding splitter artifacts | 2.1% (1/48) | 0.4–10.9% |
+| **Missed match** | **43.8% (21/48)** | **30.7–57.7%** |
+
+**A missed match is the expensive error here.** It counts one risk as both NEW
+and DROPPED, inflating the headline in the direction the project's claim runs.
+
+**It was initially unmeasurable.** Mutual-best matching never produces a
+sub-threshold pair, so an audit sampling only matched pairs is structurally blind
+to it. A first audit reported a comfortable 6.0% false-match rate and said
+nothing about the real problem. The audit was rebuilt to carry each unmatched
+item's best rejected candidate.
+
+### Cause
+
+| Cause | Count of 21 |
+|---|---|
+| Synonym rewrite | 11 |
+| COVID-19 rewording | 6 |
+| Other same-risk rewrite | 4 |
+
+TF-IDF cosine cannot see a pure synonym rewrite — *"increased regulatory
+scrutiny"* and *"heightened supervisory attention"* share no words. Embeddings
+would fix it and would introduce an unmeasurable component into the one part of
+the pipeline whose accuracy is the central claim.
+
+**Concentration:** Atlantic Union FY2021→2022 supplied 6 of the 21 from 10
+sampled pairs, and 25 of the 48 rejected pairs came from the FY2022 transition.
+The rate is not evenly distributed and the audit is over-weighted toward the
+COVID-rewording year.
+
+### The threshold, validated against a natural control
+
+The SEC introduced Item 106 of Regulation S-K for fiscal years ending on or after
+15 December 2023, mandating specific "cybersecurity incident" wording. Filers
+rewrote their cyber risk factors to track it — new words, no new risk.
+
+| FY | Cyber NEW | Cyber MATERIALLY_REVISED |
+|---|---|---|
+| 2022 | 8 | 9 |
+| 2023 | **4** | **12** |
+| 2024 | 1 | 9 |
+| 2025 | 1 | 12 |
+
+The mandated rewrite landed in REVISED, and cyber NEW disclosures **fell** in
+FY2023. At `MATCH_MIN = 0.35` those rewrites would have been counted as new
+disclosures and the dashboard would report a phantom sector-wide cyber spike.
+
+---
+
+## 7. The finding
+
+**Between 8 and 13 of 50 regional banks newly disclosed a deposit-concentration
+or FDIC-assessment risk in their FY2023 10-K.**
+
+### The signal is specific to deposits, and specific to FY2023
+
+Share of the panel newly disclosing a risk matching each pattern:
+
+| Signal | FY2022 | FY2023 | FY2024 | FY2025 |
+|---|---|---|---|---|
+| **Deposits / liquidity** | 4% | **34%** | 2% | 0% |
+| Cyber | 14% | 8% | 2% | 2% |
+| AI | 0% | 10% | 26% | 26% |
+| Interest rates | 16% | 20% | 0% | 0% |
+
+Deposits spike sharply and uniquely in FY2023 and then vanish. Cyber *declines*.
+AI peaks two years later. Rates are elevated across FY2022–23, consistent with
+the tightening cycle rather than a single event.
+
+**That divergence is what rules out an artifact.** A filing-format change or a
+matching quirk would move every signal in the same year.
+
+### Aggregate counts hid it
+
+FY2023 shows 163 newly disclosed risks in total — the second *lowest* of four
+years — which looks like evidence against a post-SVB response. The effect is real
+and concentrated: 19 risks out of 163.
+
+This is the argument for retaining full risk **heading text** rather than only a
+four-way category label. The question *"which banks newly disclosed a
+deposit-concentration risk"* cannot be answered from a category, and a coarser
+taxonomy would have made the headline finding unreachable.
+
+### Verified, not asserted
+
+All 19 keyword hits were checked by hand against the full prior-year risk set of
+the same company. Four were rejected (DECISIONS.md D15).
+
+| Basis | Companies | Share | 95% CI |
+|---|---|---|---|
+| Strict — heading names uninsured deposits or 2023 bank failures | 8 / 50 | 16.0% | 8.3–28.5% |
+| All verified — including generic liquidity additions | 13 / 50 | 26.0% | 15.9–39.6% |
+| Unverified keyword count, **not published** | 17 / 50 | 34.0% | 22.4–47.8% |
+
+Only 1 of the 4 rejections was a matcher error. The other three were keyword
+breadth and a splitter artifact.
+
+**Only 1 of 19 was a genuine missed match, against a corpus-wide rate of 43.8%.**
+That supports the claim that the general rate is driven by rewrites of existing
+risks rather than by new-topic additions — demonstrated rather than assumed.
+
+### A secondary observation
+
+Five banks — ASB, EWBC, FNB, UCB, WBS — filed near-identical wording:
+
+> *"The proportion of our deposit account balances that exceed FDIC insurance
+> limits may expose [the Bank] to enhanced liquidity risk in times of financial
+> distress."*
+
+Template propagation through the industry, visible in the data. It comes only
+from reading the text, and it is worth noting that the headline count is
+therefore not 13 independent judgements.
+
+### Scope
+
+The panel is banks that **survived** to 2026. Silicon Valley Bank, Signature Bank
+and First Republic cannot appear. The finding is a statement about disclosure
+behaviour among surviving, calendar-year, conventionally-filing peers.
+
+## 8. The gold set
 
 **300 risk factors, hand-labelled by the author.**
 
@@ -341,7 +501,7 @@ matters more than case-by-case optimality:
 
 ---
 
-## 7. Known limitations
+## 9. Known limitations
 
 **The gold set is not truth.** It is one annotator's consistent judgement.
 Self-agreement has not yet been measured — see below — so no ceiling on
@@ -368,7 +528,7 @@ summaries the summary-detection rule does not catch, inflating their counts to
 additional filer-specific rule has historically regressed other filers.
 
 **Errors compound.** A 100% parse rate feeding an 89.3% splitter feeding a
-91.3% classifier is roughly **82% end to end**. Stage-level figures are the
+93.7% classifier is roughly **84% end to end**. Stage-level figures are the
 honest way to expose that; a single headline number would hide it. Note that
 the classifier was scored on gold-set items that include mis-split records, so
 its 91.3% already absorbs some splitting error rather than sitting cleanly on
@@ -376,7 +536,7 @@ top of it.
 
 ---
 
-## 8. Corpus scope
+## 10. Corpus scope
 
 Six companies excluded, each under a stated rule (see DECISIONS.md D5, D6, D11):
 
@@ -401,11 +561,11 @@ peers, not about the regional banking sector.
 
 ---
 
-## 9. What is not yet measured
+## 11. What is not yet measured
 
 - Intra-annotator agreement — relabel pass outstanding
-- LLM classification of the full corpus — gold set only so far (300 of 10,585)
-- Year-over-year matching: false-match and missed-match rates on hand-checked
-  pairs
-- Fault injection: deliberately breaking the pipeline and counting how many
-  faults the checks catch
+- LLM classification of the full corpus — 500 of 10,585 done; free-tier daily
+  quota is the binding constraint
+- Structural-rewrite detection: Atlantic Union FY2022 (0.70 churn) is missed
+- Fault injection: deliberately breaking the pipeline and counting caught faults
+
