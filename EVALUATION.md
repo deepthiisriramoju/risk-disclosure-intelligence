@@ -20,8 +20,11 @@ conservative one is reported.
 | Classification | LLM accuracy | **93.7%** | n=300 |
 | Classification | LLM macro F1 | **0.930** | n=300 |
 | Classification | **lift over baseline** | **+11.6 macro F1 points** | n=300 |
-| YoY matching | false match rate | **8.3%** | n=48 |
-| YoY matching | missed match rate | **43.8%** | n=48 |
+| Matching | false match rate | **8.3%** | n=48 |
+| Matching | missed match rate | **43.8%** | n=48 |
+| Warehouse | rows quarantined with a reason | **1.50%** | all |
+| Fault injection | injected faults detected | **7 of 8** | 8 injected |
+| Gold set | **annotator self-agreement** | **88.0%** | n=50 |
 | **Finding** | banks newly disclosing a deposit risk, FY2023 | **8–13 of 50** | verified by hand |
 
 Corpus after exclusions: **50 companies, 250 filings, 10,585 risk factors.**
@@ -234,10 +237,9 @@ no malformed or mis-sized responses.
 **Batch size was tuned against the free-tier daily quota, not against accuracy.**
 At 20 per request the corpus needs 530 calls; at 50 it needs 212. Scored on the
 same 300 gold items, batch 20 gave 0.913 and batch 50 gave 0.937 — a 2.4-point
-difference that sits inside both confidence intervals (0.876–0.940 and
-0.903–0.959). **No claim is made that larger batches are better.** What the
-comparison establishes is that they are not worse, which is what the quota
-constraint required.
+difference sitting inside both confidence intervals (0.876–0.940 and
+0.903–0.959). **No claim is made that larger batches are better**, only that they
+are not worse, which is what the quota constraint required.
 
 ### Against the baseline
 
@@ -286,8 +288,7 @@ taxonomy problem, and the fix behaved as predicted.
 
 `strategic` gained most in F1 (+13.0). It was the baseline's weakest class at
 0.752 and remains the weakest for the LLM at 0.882, with recall 0.849 — the
-lowest of the four. Three independent measurements now agree that the strategic
-boundary is the least well-defined in the taxonomy.
+lowest of the four.
 
 ### Where the LLM is weaker
 
@@ -312,8 +313,6 @@ Each risk factor is matched to its counterpart in the prior year and labelled
 NEW, CARRIED FORWARD, MATERIALLY REVISED, DROPPED or AMBIGUOUS. Thresholds and
 guards are in DECISIONS.md D13.
 
-### Corpus result
-
 | Label | Count | Share |
 |---|---|---|
 | CARRIED_FORWARD | 6,789 | 74.6% |
@@ -322,9 +321,8 @@ guards are in DECISIONS.md D13.
 | DROPPED | 624 | 6.9% |
 | AMBIGUOUS | 19 | 0.2% |
 
-1.5% of rows carry a review flag (similarity 0.20–0.40, or ambiguous). Banks
-copy forward with light edits and change a handful of risks a year, which is the
-expected shape.
+1.5% of rows carry a review flag. Banks copy forward with light edits and change
+a handful of risks a year, which is the expected shape.
 
 ### Accuracy — measured in both error directions
 
@@ -336,18 +334,16 @@ expected shape.
 | — matcher only, excluding splitter artifacts | 2.1% (1/48) | 0.4–10.9% |
 | **Missed match** | **43.8% (21/48)** | **30.7–57.7%** |
 
-**A missed match is the expensive error here.** It counts one risk as both NEW
-and DROPPED, inflating the headline in the direction the project's claim runs.
+**A missed match is the expensive error.** It counts one risk as both NEW and
+DROPPED, inflating the headline in the direction the project's claim runs.
 
-**It was initially unmeasurable.** Mutual-best matching never produces a
-sub-threshold pair, so an audit sampling only matched pairs is structurally blind
-to it. A first audit reported a comfortable 6.0% false-match rate and said
-nothing about the real problem. The audit was rebuilt to carry each unmatched
-item's best rejected candidate.
+**It was initially unmeasurable, and that was a design defect.** Mutual-best
+matching never produces a sub-threshold pair, so an audit sampling only matched
+pairs is structurally blind to it. A first audit reported a comfortable 6.0%
+false-match rate and said nothing about the real problem. The audit was rebuilt
+to carry each unmatched item's best rejected candidate.
 
-### Cause
-
-| Cause | Count of 21 |
+| Cause of missed match | Count of 21 |
 |---|---|
 | Synonym rewrite | 11 |
 | COVID-19 rewording | 6 |
@@ -360,8 +356,7 @@ the pipeline whose accuracy is the central claim.
 
 **Concentration:** Atlantic Union FY2021→2022 supplied 6 of the 21 from 10
 sampled pairs, and 25 of the 48 rejected pairs came from the FY2022 transition.
-The rate is not evenly distributed and the audit is over-weighted toward the
-COVID-rewording year.
+The rate is not evenly distributed.
 
 ### The threshold, validated against a natural control
 
@@ -373,8 +368,6 @@ rewrote their cyber risk factors to track it — new words, no new risk.
 |---|---|---|
 | 2022 | 8 | 9 |
 | 2023 | **4** | **12** |
-| 2024 | 1 | 9 |
-| 2025 | 1 | 12 |
 
 The mandated rewrite landed in REVISED, and cyber NEW disclosures **fell** in
 FY2023. At `MATCH_MIN = 0.35` those rewrites would have been counted as new
@@ -408,13 +401,10 @@ matching quirk would move every signal in the same year.
 ### Aggregate counts hid it
 
 FY2023 shows 163 newly disclosed risks in total — the second *lowest* of four
-years — which looks like evidence against a post-SVB response. The effect is real
-and concentrated: 19 risks out of 163.
+years. The effect is 19 risks out of 163.
 
 This is the argument for retaining full risk **heading text** rather than only a
-four-way category label. The question *"which banks newly disclosed a
-deposit-concentration risk"* cannot be answered from a category, and a coarser
-taxonomy would have made the headline finding unreachable.
+four-way category label.
 
 ### Verified, not asserted
 
@@ -427,12 +417,9 @@ the same company. Four were rejected (DECISIONS.md D15).
 | All verified — including generic liquidity additions | 13 / 50 | 26.0% | 15.9–39.6% |
 | Unverified keyword count, **not published** | 17 / 50 | 34.0% | 22.4–47.8% |
 
-Only 1 of the 4 rejections was a matcher error. The other three were keyword
-breadth and a splitter artifact.
-
-**Only 1 of 19 was a genuine missed match, against a corpus-wide rate of 43.8%.**
-That supports the claim that the general rate is driven by rewrites of existing
-risks rather than by new-topic additions — demonstrated rather than assumed.
+Only 1 of the 4 rejections was a matcher error. **Only 1 of 19 was a genuine
+missed match, against a corpus-wide rate of 43.8%** — evidence that the general
+rate is driven by rewrites of existing risks rather than new-topic additions.
 
 ### A secondary observation
 
@@ -442,17 +429,107 @@ Five banks — ASB, EWBC, FNB, UCB, WBS — filed near-identical wording:
 > limits may expose [the Bank] to enhanced liquidity risk in times of financial
 > distress."*
 
-Template propagation through the industry, visible in the data. It comes only
-from reading the text, and it is worth noting that the headline count is
-therefore not 13 independent judgements.
+Template propagation through the industry, visible in the data. Querying the
+warehouse for headings shared across three or more banks shows this is the
+normal state rather than an anomaly: seven banks share a vendor-dependency
+sentence, seven an information-accuracy sentence, five an anti-takeover sentence.
+**Peer-disclosure benchmarking is therefore measuring drafting conventions as
+much as underlying exposure.**
 
-### Scope
+---
 
-The panel is banks that **survived** to 2026. Silicon Valley Bank, Signature Bank
-and First Republic cannot appear. The finding is a statement about disclosure
-behaviour among surviving, calendar-year, conventionally-filing peers.
+## 8. The warehouse, and what it discarded
 
-## 8. The gold set
+Three layers in DuckDB: **raw** loads every source verbatim, **clean** types and
+validates, **mart** is a star schema of one fact table and three dimensions.
+
+Rows failing a validation rule move to a `quarantine` table with a reason rather
+than being deleted. **A discarded row is invisible; a quarantined row is a number
+you can report.**
+
+| Quarantine reason | Records | Share of raw |
+|---|---|---|
+| `prior_risk_quarantined` | 63 | 0.60% |
+| `duplicate_heading_in_filing` | 62 | 0.59% |
+| `empty_heading` | 34 | 0.32% |
+| **Total** | **159** | **1.50%** |
+
+`short_body` returned **zero** — independently confirming the splitter's report
+that no risk factor has a body under 200 characters.
+
+### Integrity checks, run against the warehouse
+
+Four checks that must return zero, executed as SQL against the built database
+rather than against the Python that filled it — a count computed by the loader
+cannot reveal a bug in the loader.
+
+**The first run failed.** `orphan prior_risk_id` returned 4: matched pairs
+pointing at a prior-year risk that quarantine had removed. Fixed by nulling the
+dangling pointer, quarantining the row with its reason, and adding a
+`prior_risk_missing` flag.
+
+| Check | Result |
+|---|---|
+| orphan `prior_risk_id` | 0 |
+| match with a quarantined prior risk | 4 *(known, flagged)* |
+| duplicate `risk_id` | 0 |
+| excluded company leaked into the mart | 0 |
+| NEW label with a prior risk attached | 0 |
+
+### The headline finding, reproduced independently
+
+The deposit result was computed a second time in SQL against the warehouse,
+using a pattern written separately from the Python. Result: **12 banks, FY2023
+only.** Nothing in any other year.
+
+That sits between the strict hand-verified count (8) and the broad one (13).
+**Two implementations in different languages agree on the shape**, which rules
+out a bug in either path having produced the effect.
+
+---
+
+## 9. Fault injection
+
+Every quality check in this project was written in response to a problem that had
+already occurred. That is the wrong direction of evidence: a check never tested
+against a fault it was not written for is a hope, not a control.
+
+Eight faults were introduced deliberately into a copy of the data, one at a time.
+
+**Detection rate: 7 of 8 (88%).**
+
+| Fault | Detected by |
+|---|---|
+| Filing truncated to half its risk factors | orphan match count 63 → 93 |
+| Ten bodies emptied, headings kept | quarantine `short_body` 0 → 10 |
+| Five risk factors duplicated | quarantine `duplicate_heading` 40 → 45 |
+| Malformed JSON | load error, filing count drop |
+| 500 classifications blanked, rows retained | missing-category count 0 → 500 |
+| 50 matches pointing at non-existent risks | orphan count 63 → 113 |
+| Fiscal year set to 2099 | domain check |
+| **All classifications shifted by one row** | **nothing** |
+
+The faults were chosen to be quiet rather than loud. A crash announces itself;
+the dangerous fault leaves the pipeline reporting success on wrong data.
+
+### The one that escaped, and why it matters
+
+**`shifted_labels` passed through in complete silence.** Every classification
+moved down one row: correct row count, correct category distribution, plausible
+output — and every single label attached to the wrong risk factor.
+
+No structural check can see this. Nothing about the counts changed. Completeness
+is unaffected. Referential integrity is intact.
+
+**The only thing that catches it is the gold set.** Scoring predictions against
+hand-labelled ground truth is the one check that asks whether a label is
+*correct* rather than whether it *exists*.
+
+That is the argument this project is built on, demonstrated rather than asserted:
+structural checks verify that data is *well-formed*; only ground truth verifies
+that it is *right*.
+
+## 10. The gold set
 
 **300 risk factors, hand-labelled by the author.**
 
@@ -499,16 +576,91 @@ matters more than case-by-case optimality:
 - Judge from the heading; read the body only when the heading is genuinely
   ambiguous
 
+### Intra-annotator agreement — the ceiling on every number above
+
+**88.0% (44/50) on category. 90.0% (45/50) on split correctness.**
+
+Fifty gold-set items were relabelled twelve days after the original pass,
+without reference to the first answers, using the same written rules.
+
+#### Why this matters more than it looks
+
+The gold set is not truth. It is one annotator's judgement, and this measures how
+reliable that judgement is.
+
+| | |
+|---|---|
+| LLM accuracy against the gold set | **93.7%** |
+| Annotator agreement with themselves | **88.0%** |
+
+**The model is more consistent with the labels than the labeller is.** That means
+93.7% is at or near the ceiling this evaluation can measure — pushing the score
+higher would increasingly mean fitting the noise in the ground truth rather than
+improving the classification.
+
+Reporting a model score without the annotator's own error rate implies the
+ground truth is perfect. It is not, and the size of its imperfection is now
+known.
+
+#### Where the disagreements fall
+
+| First pass | Second pass | Count |
+|---|---|---|
+| strategic | operational | 2 |
+| strategic | financial | 1 |
+| financial | regulatory | 1 |
+| regulatory | strategic | 1 |
+| operational | strategic | 1 |
+
+**Four of the five involve `strategic`**, on one side or the other.
+
+That is the fourth independent measurement pointing at the same place:
+
+| Measurement | `strategic` result |
+|---|---|
+| Keyword baseline F1 | 0.752 — lowest of four classes |
+| LLM F1 | 0.882 — lowest of four classes |
+| LLM recall | 0.849 — lowest of four classes |
+| Annotator self-agreement | 4 of 5 disagreements involve it |
+
+**This is a taxonomy problem, not a model problem.** The boundary between
+"the plan failing" and the other three categories is genuinely ambiguous —
+a competition risk that mentions reduced earnings can be argued into
+`financial`, and a reputational risk into `operational`. Both the human and both
+classifiers struggle in the same place, which is what a definitional problem
+looks like rather than a learning one.
+
+#### The split_ok result reveals a labelling drift
+
+All five disagreements run **the same direction**: `n` on the first pass, `y` on
+the second. Never the reverse.
+
+The cause is known. The labelling tool truncates long bodies at roughly 1,100
+characters for display, so a correctly-split risk factor appears to end
+mid-sentence. Early in the first pass that was read as a splitting error; the
+rule was clarified partway through — *check where the body starts, not where the
+display ends* — and applied consistently thereafter.
+
+**So the reported splitter accuracy of 89.3% is likely a slight
+underestimate.** It is reported unchanged rather than revised upward, because
+adjusting a measurement after seeing which direction the error runs is how
+metrics stop being measurements.
+
+#### Limitation
+
+This is *intra*-annotator agreement — one person against themselves. The proper
+measure is *inter*-annotator agreement across two or more labellers, which would
+also allow disagreements to be adjudicated into a cleaner gold set. With a single
+annotator, consistency is measurable but correctness is not.
+
 ---
 
-## 9. Known limitations
+## 11. Known limitations
 
-**The gold set is not truth.** It is one annotator's consistent judgement.
-Self-agreement has not yet been measured — see below — so no ceiling on
-achievable model accuracy can currently be stated.
-
-> **TODO:** relabel 50 items after a gap and report intra-annotator agreement.
-> `python build_gold_set.py --relabel 50` then `--agreement`.
+**The gold set is not truth.** It is one annotator's judgement, and that
+judgement is 88.0% self-consistent (section 10). The LLM agrees with the labels
+more often (93.7%) than the labeller agrees with themselves, so the reported
+accuracy is at or near the ceiling this evaluation can measure.
 
 **Single annotator.** Inter-annotator agreement — the proper measure — would
 need two or more labellers. Intra-annotator agreement is the weaker substitute.
@@ -528,7 +680,7 @@ summaries the summary-detection rule does not catch, inflating their counts to
 additional filer-specific rule has historically regressed other filers.
 
 **Errors compound.** A 100% parse rate feeding an 89.3% splitter feeding a
-93.7% classifier is roughly **84% end to end**. Stage-level figures are the
+91.3% classifier is roughly **82% end to end**. Stage-level figures are the
 honest way to expose that; a single headline number would hide it. Note that
 the classifier was scored on gold-set items that include mis-split records, so
 its 91.3% already absorbs some splitting error rather than sitting cleanly on
@@ -536,7 +688,7 @@ top of it.
 
 ---
 
-## 10. Corpus scope
+## 12. Corpus scope
 
 Six companies excluded, each under a stated rule (see DECISIONS.md D5, D6, D11):
 
@@ -561,11 +713,11 @@ peers, not about the regional banking sector.
 
 ---
 
-## 11. What is not yet measured
+## 13. What is not yet measured
 
-- Intra-annotator agreement — relabel pass outstanding
-- LLM classification of the full corpus — 500 of 10,585 done; free-tier daily
-  quota is the binding constraint
+- LLM classification of the full corpus — gold set only so far (300 of 10,585)
+- LLM classification of the full corpus — 2,850 of 10,585 done; the free-tier
+  daily quota is the binding constraint
 - Structural-rewrite detection: Atlantic Union FY2022 (0.70 churn) is missed
-- Fault injection: deliberately breaking the pipeline and counting caught faults
-
+- A shifted-label fault is undetectable by any structural check; only the gold
+  set catches it, and the gold set covers 300 of 10,585 risk factors
