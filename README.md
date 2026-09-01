@@ -65,6 +65,8 @@ Full detail, methods and failure taxonomies: **[EVALUATION.md](EVALUATION.md)**
 | Classification | **lift over baseline** | **+11.6 macro F1 points** | n=300 |
 | Matching | false match rate | 8.3% | n=48 |
 | Matching | **missed match rate** | **43.8%** | n=48 |
+| Warehouse | rows quarantined with a reason | 1.50% | all |
+| Fault injection | injected faults detected | **7 of 8** | 8 injected |
 
 **Errors compound.** 100% × 89.3% × 93.7% is roughly **84% end to end**.
 Stage-level figures are the honest way to expose that; a single headline number
@@ -92,6 +94,27 @@ therefore a vocabulary-coverage problem rather than a taxonomy problem.
 | | baseline | LLM |
 |---|---|---|
 | operational recall | 0.689 | **0.934** |
+
+---
+
+## The fault that nothing caught
+
+Eight faults were introduced into the pipeline deliberately — a truncated
+filing, emptied bodies, duplicated rows, broken foreign keys, a wrong fiscal
+year, blanked classifications. **Seven of eight were detected.**
+
+The one that escaped is the most instructive. Every classification was shifted
+down by one row: correct row count, correct category distribution, plausible
+output, and **every label attached to the wrong risk factor**. Completeness
+unaffected. Referential integrity intact. A dashboard would render it without a
+warning.
+
+No structural check can see it. **The only thing that catches it is the gold
+set** — scoring against hand-labelled ground truth is the one check that asks
+whether a label is *correct* rather than whether it *exists*.
+
+That is the argument the whole project rests on, demonstrated rather than
+asserted.
 
 ---
 
@@ -207,6 +230,7 @@ src/
   find_signal.py         quantifies a disclosure signal across the panel
   verify_new.py          verifies specific NEW risks against the prior year
   build_warehouse.py     DuckDB warehouse: raw -> clean -> mart + quarantine
+  fault_injection.py     breaks the pipeline on purpose, counts what is caught
   build_app_data.py      slim extract the deployed app reads
 app/
   streamlit_app.py       the live dashboard

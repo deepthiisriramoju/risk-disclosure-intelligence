@@ -349,9 +349,193 @@ reader who works it out unaided will assume it was hidden.
 
 ---
 
+## D13 — Year-over-year matching: threshold and guards
+
+**Decision.** `MATCH_MIN = 0.25`, `UNCHANGED_MIN = 0.90`, similarity = 0.70 ×
+heading cosine + 0.30 × body cosine, matched by iterative mutual-best with a
+0.05 runner-up margin.
+
+### Why heading and body are scored separately
+
+A first version concatenated them. Calibration against the real corpus showed
+why that fails: risk factors with **identical headings** scored as low as 0.22
+because their bodies had been rewritten.
+
+- 0.407 — *"We are subject to extensive government regulation and supervision."*
+- 0.225 — *"Deposit insurance premiums could increase further in the future."*
+
+Under a single score those would be counted as NEW plus DROPPED — inflating the
+headline with risks that plainly carried forward. The heading is the *identity*
+of a risk; the body is its explanation. Weighting the heading at 0.70 floors an
+identical-heading pair at 0.70, so it can never read as new, while a genuinely
+unrelated pair still scores near zero.
+
+### Why 0.25, argued from two specific pairs
+
+**ASB, similarity 0.428.** *"We will experience increases in FDIC insurance
+assessments due to the bank failures that occurred in 2023"* → *"We could
+continue to experience adjustments in FDIC insurance assessments."* Driver
+(FDIC), mechanism (assessment rates) and harm (higher expense) are all
+unchanged. What changed is that a stale specific dropped out and a commitment
+was hedged — the two most common kinds of routine annual edit. If that counts as
+a new risk, "newly disclosed" means nothing.
+
+**BKU, similarity 0.271.** *"Failure by us or third parties to detect or prevent
+a breach in information security..."* → *"A cybersecurity incident, which is any
+unauthorized occurrence, or series of related unauthorized occurrences, on or
+conducted through our information systems..."* Same driver, mechanism and harm.
+The FY2023 phrasing tracks the definition of "cybersecurity incident" in Item
+106 of Regulation S-K, which the SEC made effective for annual reports covering
+fiscal years ending on or after 15 December 2023. This is a **legally mandated
+definitional rewrite** — the purest possible case of new words with no new risk.
+
+Counting it as a new disclosure would make the dashboard report a sector-wide
+cybersecurity spike in FY2023 that is entirely an artifact of SEC drafting.
+
+**Both pairs share the pattern the threshold has to survive: heavy lexical
+churn, zero drift in driver, mechanism or harm.**
+
+**Empirical confirmation.** After the threshold was set, cyber NEW disclosures in
+FY2023 came in at 4 — *lower* than FY2022's 8 — while cyber MATERIALLY_REVISED
+hit 12, the highest of any year. The mandated rewrite landed in REVISED, not NEW.
+At `MATCH_MIN = 0.35` those would have been counted as new.
+
+### Why a low threshold is safe: the three guards
+
+0.25 with naive one-to-one matching would be too loose, and an interviewer would
+be right to push on it. It is defensible only alongside:
+
+1. **Mutual best.** A pair is accepted only if each side ranks the other first
+   among everything still unmatched.
+2. **Runner-up margin of 0.05.** Both sides must beat their second choice.
+3. **Review flag** on similarity 0.20–0.40 and on ambiguous items — counted, but
+   marked as untrusted.
+
+Accepted pairs are removed and the rounds repeat, so sibling risks inside one
+bank-year (two commercial-real-estate items, an information-security item beside
+a data-privacy item) compete against each other rather than against a cutoff.
+`MATCH_MIN` then only decides the fate of items with no strong counterpart
+anywhere.
+
+**Empirical confirmation.** United Bankshares FY2022 contains *"United is subject
+to credit risk in its loan portfolio"* (0.317) and *"United is subject to
+extensive government regulation"* (0.308) — both **above** `MATCH_MIN` against
+FY2023's *"United is subject to liquidity risk"*, purely because they share the
+filer's *"United is subject to X"* template. Greedy one-to-one matching would
+have bound liquidity risk to credit risk. Mutual-best refused, and the item was
+correctly labelled NEW.
+
+### Digits are normalised before comparison
+
+`"As of December 31, 2022"` versus `"...2023"`, or `$3.4 billion` versus
+`$3.9 billion`, would otherwise register as a change in every risk factor and
+make the entire corpus look rewritten annually. This single step matters more
+than the threshold.
+
+### Honest caveat
+
+0.25 was set by reasoning about two pairs, then checked against the full
+similarity distribution and the cyber control. It is a judgement, not a
+derivation, and should be revisited if the panel or industry changes.
+
+---
+
+## D14 — Matching is greedy-free but not error-free
+
+**Measured on 96 hand-checked pairs, 48 accepted and 48 rejected.**
+
+| Error direction | Rate | 95% CI |
+|---|---|---|
+| False match (accepted, but different risks) | 8.3% | 3.3–19.6% |
+| — excluding splitter artifacts | 2.1% | 0.4–10.9% |
+| **Missed match** (rejected, but the same risk) | **43.8%** | **30.7–57.7%** |
+
+**The missed-match rate was initially unmeasurable, and that was a design
+defect.** Mutual-best matching never creates a sub-threshold pair — a risk that
+fails simply becomes NEW or DROPPED with nothing attached — so an audit sampling
+only matched pairs is structurally blind to the error direction that *inflates*
+the headline. The audit was rebuilt to carry each unmatched item's best rejected
+candidate. The first audit reported a reassuring 6% and said nothing about the
+real problem.
+
+### Cause of the missed matches
+
+| Cause | Count of 21 |
+|---|---|
+| Synonym rewrite | 11 |
+| COVID-19 rewording | 6 |
+| Other same-risk rewrite | 4 |
+
+**TF-IDF cosine cannot detect a pure synonym rewrite.** *"Increased regulatory
+scrutiny"* → *"heightened supervisory attention"* share no words, so similarity
+is near zero regardless of threshold or guard. Embeddings would address this at
+the cost of introducing an unmeasurable component into the one part of the
+pipeline whose accuracy is the project's central claim; that trade was declined.
+
+### Concentration
+
+Atlantic Union FY2021→2022 produced **6 of the 21** missed matches from 10
+sampled pairs. It is the highest-churn company-year in the corpus (0.70) and
+rewrote its Item 1A wholesale. **The structural-rewrite detector failed to catch
+it** — an open defect, recorded rather than hidden. 25 of the 48 rejected pairs
+came from the FY2022 transition, so the audit is also over-weighted toward the
+COVID-rewording year.
+
+---
+
+## D15 — The headline finding is verified item by item, not asserted
+
+**Decision.** Every risk contributing to the published finding was checked by
+hand against the full prior-year risk set of the same company, and the published
+number is the verified count.
+
+**Why a corpus-wide rate is not enough.** The 43.8% missed-match rate does not
+tell you whether *this* finding survives. It is dominated by synonym rewrites of
+existing risks, concentrated in one company-year. The deposit risks are different
+in kind — new vocabulary about a new event. That is a plausible argument, and
+plausible is not evidence.
+
+**Method.** For each of the 19 FY2023 NEW risks matching a deposit/liquidity
+pattern, every risk factor the same company disclosed in FY2022 was listed and
+read. Similarity ranking is deliberately not relied on: a synonym rewrite scores
+0.000 and sits indistinguishably among unrelated risks, which is precisely the
+error being checked for.
+
+**Result: 4 of 19 rejected.**
+
+| Company | Why rejected |
+|---|---|
+| BANC | *"Funding and Liquidity Risks"* is a category header, not a risk — a splitter artifact. BANC already disclosed a liquidity risk in FY2022 |
+| FLG | Category IV prudential standards — a regulatory risk caught by the keyword "liquidity risk" |
+| RNST | FY2022 already contained *"We may be adversely affected by the soundness of other financial institutions"*. Same driver, mechanism and harm. **A genuine missed match** |
+| SSB | About Basel capital proposals, not deposits. Also a D12-flagged filer with known over-extraction |
+
+Only **one of the four** is the matcher failing. The others are keyword breadth
+and a splitter artifact.
+
+**Published numbers, both reported:**
+
+| Basis | Companies | Share | 95% CI |
+|---|---|---|---|
+| Strict — heading explicitly names uninsured deposits or 2023 bank failures | 8 / 50 | 16.0% | 8.3–28.5% |
+| All verified — including generically-worded liquidity additions | 13 / 50 | 26.0% | 15.9–39.6% |
+| Unverified keyword count (**not published**) | 17 / 50 | 34.0% | 22.4–47.8% |
+
+Reporting the sensitivity is stronger than choosing one. The unverified 34% is
+shown only to make the size of the correction visible.
+
+**What this establishes about D14.** Only 1 of 19 was a genuine missed match,
+against a corpus-wide rate of 43.8%. That is evidence the general rate is driven
+by rewrites of *existing* risks rather than by new-topic additions — which is
+what the headline depends on, and it is now demonstrated rather than assumed.
+
+---
+
 ## Open decisions
 
-- **D6 replacement check not yet built** (total-assets discontinuity). Name-based
+- **D6 replacement check not yet built** (total-assets discontinuity).
+- **Structural-rewrite detector misses Atlantic Union FY2022** (0.70 churn, the
+  highest in the corpus). See D14. Name-based
   merger detection missed UMB Financial's 2024 acquisition of Heartland Financial
   because the registrant name never changed.
 - **Debt-only registrants.** HSBC USA and Santander Holdings USA have no listed
