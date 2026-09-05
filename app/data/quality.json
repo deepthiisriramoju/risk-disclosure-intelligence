@@ -25,6 +25,6 @@
     0.396
   ],
   "end_to_end": 0.84,
-  "llm_coverage": 3900,
-  "baseline_coverage": 6685
+  "llm_coverage": 4900,
+  "baseline_coverage": 5685
 }
