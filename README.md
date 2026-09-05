@@ -151,6 +151,44 @@ and what the data cannot tell you. No methodology.
 
 ## How the hard decisions were made
 
+## Power BI
+
+Three pages, built on the same data the Streamlit app reads.
+File: [`powerbi/risk_disclosure.pbix`](powerbi/risk_disclosure.pbix)
+
+### Industry — what changed, and when
+
+![Industry](powerbi/industry.png)
+
+New disclosures by category and year, with the full year-over-year breakdown
+underneath. The `financial` line peaking in FY2023 and falling away is the
+deposit finding visible at category level.
+
+### Company — one bank, year by year
+
+![Company](powerbi/company.png)
+
+Pick any of the 50 banks and read its disclosure history: what it added, revised,
+carried forward and dropped, colour-coded and sortable. The risk headings are
+shown in full, because the sub-type questions the project answers cannot be
+asked of a four-way category label.
+
+### Quality — how well the pipeline works
+
+![Quality](powerbi/quality.png)
+
+Extraction, splitting and classification accuracy, the keyword baseline the
+model had to beat, and the annotator's own self-agreement — which is the ceiling
+on how accurate any classifier can appear against a hand-labelled gold set.
+
+Also shown: which classifier labelled each risk factor. The corpus is a mix of
+LLM and keyword labels while the classification run completes under a free-tier
+daily quota, and the report says so rather than presenting one blended figure.
+
+Full method and the remaining error rates are in
+[EVALUATION.md](EVALUATION.md).
+
+
 Full reasoning: **[DECISIONS.md](DECISIONS.md)** — 15 entries, each with what was
 rejected and why.
 
