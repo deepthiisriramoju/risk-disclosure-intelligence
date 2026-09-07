@@ -9,7 +9,7 @@ one against the prior year to identify what is newly disclosed.
 
 Every stage has a measured accuracy figure. That is the point of the project.
 
-### **[▶ Open the live app](https://risk-disclosure-intelligence-mqfjcxjvd2xbnqzspfjbyt.streamlit.app/)**
+### **[▶ Open the live app](https://risk-disclosure.streamlit.app/)**
 
 *Explore the finding, drill into any of the 50 banks year by year, search all
 10,585 risk factors, and see the pipeline's own error rates on the Quality tab.*
