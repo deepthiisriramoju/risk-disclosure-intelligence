@@ -14,7 +14,6 @@ Every stage has a measured accuracy figure. That is the point of the project.
 *Explore the finding, drill into any of the 50 banks year by year, search all
 10,585 risk factors, and see the pipeline's own error rates on the Quality tab.*
 
-> **[ dashboard GIF goes here — record after the LLM run completes ]**
 
 ---
 
